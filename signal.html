@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGNAL — An Experiment by Cravio Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #05050a;
+      --cyan: #00e5ff;
+      --orange: #ff4d1c;
+      --text: #e8e8e8;
+      --muted: rgba(232, 232, 232, 0.35);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Syne', sans-serif;
+      color: var(--text);
+      cursor: crosshair;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    .ui {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(1.5rem, 5vw, 2.5rem);
+    }
+
+    /* TOP BAR */
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      opacity: 0;
+      animation: fadeUp 1s ease 0.2s forwards;
+    }
+
+    .mono {
+      font-family: 'Syne Mono', monospace;
+      font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mono em {
+      color: var(--cyan);
+      font-style: normal;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      margin-right: 0.5rem;
+      animation: blink 2s ease-in-out infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* CENTER */
+    .center {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    h1 {
+      font-size: clamp(5rem, 20vw, 14rem);
+      font-weight: 800;
+      line-height: 0.85;
+      letter-spacing: -0.04em;
+      background: linear-gradient(125deg, #ffffff 0%, #a0f8ff 40%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      transform: translateY(40px);
+      animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+    }
+
+    .tagline {
+      font-family: 'Syne Mono', monospace;
+      font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      line-height: 1.8;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.65s forwards;
+    }
+
+    .tagline span {
+      display: block;
+    }
+
+    /* BOTTOM */
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      opacity: 0;
+      animation: fadeUp 1s ease 0.9s forwards;
+    }
+
+    .credit .name {
+      font-weight: 700;
+      font-size: clamp(0.7rem, 2vw, 0.85rem);
+      color: var(--text);
+      letter-spacing: 0.05em;
+    }
+
+    .credit .studio {
+      font-family: 'Syne Mono', monospace;
+      font-size: clamp(0.55rem, 1.5vw, 0.65rem);
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      margin-top: 0.2rem;
+    }
+
+    .badge {
+      font-family: 'Syne Mono', monospace;
+      font-size: clamp(0.55rem, 1.5vw, 0.65rem);
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .badge strong {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+      font-weight: 400;
+    }
+
+    /* HINT */
+    .hint {
+      position: fixed;
+      bottom: clamp(4rem, 10vh, 6rem);
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Syne Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.12);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10;
+      animation: pulse 3s ease-in-out infinite 2s;
+    }
+
+    /* SCAN LINE OVERLAY */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0, 0, 0, 0.04) 3px,
+        rgba(0, 0, 0, 0.04) 4px
+      );
+    }
+
+    /* CORNER MARKS */
+    .corner {
+      position: fixed;
+      width: 20px; height: 20px;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      animation: fadeUp 1s ease 1.2s forwards;
+    }
+    .corner::before, .corner::after {
+      content: '';
+      position: absolute;
+      background: rgba(0, 229, 255, 0.4);
+    }
+    .corner::before { width: 100%; height: 1px; }
+    .corner::after { width: 1px; height: 100%; }
+
+    .tl { top: 1.5rem; left: 1.5rem; }
+    .tl::before { top: 0; left: 0; }
+    .tl::after { top: 0; left: 0; }
+
+    .tr { top: 1.5rem; right: 1.5rem; }
+    .tr::before { top: 0; right: 0; }
+    .tr::after { top: 0; right: 0; }
+
+    .bl { bottom: 1.5rem; left: 1.5rem; }
+    .bl::before { bottom: 0; left: 0; }
+    .bl::after { bottom: 0; left: 0; }
+
+    .br { bottom: 1.5rem; right: 1.5rem; }
+    .br::before { bottom: 0; right: 0; }
+    .br::after { bottom: 0; right: 0; }
+
+    /* ANIMATIONS */
+    @keyframes slideUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      to { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.12; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div class="scanlines"></div>
+
+<!-- Corner decorations -->
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div class="ui">
+  <div class="top">
+    <div class="mono"><span class="dot"></span>EXP_001 / <em>SIGNAL</em></div>
+    <div class="mono">INTERACTIVE — 2026</div>
+  </div>
+
+  <div class="center">
+    <h1>SIGNAL</h1>
+    <div class="tagline">
+      <span>Noise finding its direction.</span>
+      <span>Touch the screen to interfere.</span>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="credit">
+      <div class="name">David</div>
+      <div class="studio">CRAVIO STUDIO</div>
+    </div>
+    <div class="badge">
+      GOODWALL<br>
+      <strong>#ShareMyProject</strong>
+    </div>
+  </div>
+</div>
+
+<div class="hint">MOVE CURSOR / TOUCH TO INTERACT</div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  let W, H, particles;
+  const mouse = { x: -999, y: -999, active: false };
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  class Particle {
+    constructor() { this.init(); }
+
+    init() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.ox = this.x;
+      this.oy = this.y;
+      this.vx = (Math.random() - 0.5) * 0.5;
+      this.vy = (Math.random() - 0.5) * 0.5;
+      this.size = Math.random() * 1.8 + 0.3;
+      this.isOrange = Math.random() > 0.88;
+      this.baseAlpha = Math.random() * 0.5 + 0.2;
+      this.life = Math.random() * 300 + 150;
+      this.age = Math.floor(Math.random() * this.life);
+    }
+
+    update() {
+      const dx = this.x - mouse.x;
+      const dy = this.y - mouse.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const R = 140;
+
+      if (mouse.active && d < R) {
+        const f = (1 - d / R) * 3;
+        this.vx += (dx / d) * f;
+        this.vy += (dy / d) * f;
+      }
+
+      this.vx += (this.ox - this.x) * 0.0015;
+      this.vy += (this.oy - this.y) * 0.0015;
+      this.vx *= 0.96;
+      this.vy *= 0.96;
+      this.x += this.vx;
+      this.y += this.vy;
+      this.age++;
+
+      if (this.age > this.life) this.init();
+    }
+
+    draw() {
+      const r = this.age / this.life;
+      const a = this.baseAlpha * (r < 0.1 ? r * 10 : r > 0.85 ? (1 - r) / 0.15 : 1);
+      const hue = this.isOrange ? '16, 77%, 55%' : '190, 100%, 50%';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${hue}, ${a})`;
+      ctx.fill();
+    }
+  }
+
+  function drawConnections() {
+    const D = 85;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < D) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(0, 229, 255, ${(1 - d / D) * 0.18})`;
+          ctx.lineWidth = 0.4;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function drawGrid() {
+    const s = 55;
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= W; x += s) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0); ctx.lineTo(x, H);
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.025)';
+      ctx.stroke();
+    }
+    for (let y = 0; y <= H; y += s) {
+      ctx.beginPath();
+      ctx.moveTo(0, y); ctx.lineTo(W, y);
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.025)';
+      ctx.stroke();
+    }
+  }
+
+  function drawMouseGlow() {
+    if (!mouse.active) return;
+    const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 120);
+    g.addColorStop(0, 'rgba(0, 229, 255, 0.06)');
+    g.addColorStop(1, 'rgba(0, 229, 255, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, 120, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function init() {
+    resize();
+    const count = Math.min(Math.floor((W * H) / 7500), 220);
+    particles = Array.from({ length: count }, () => new Particle());
+  }
+
+  function loop() {
+    ctx.fillStyle = 'rgba(5, 5, 10, 0.22)';
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+    drawMouseGlow();
+    drawConnections();
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('resize', init);
+
+  window.addEventListener('mousemove', e => {
+    mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+  });
+  window.addEventListener('mouseleave', () => { mouse.active = false; });
+
+  window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    mouse.x = e.touches[0].clientX;
+    mouse.y = e.touches[0].clientY;
+    mouse.active = true;
+  }, { passive: false });
+
+  window.addEventListener('touchstart', e => {
+    mouse.x = e.touches[0].clientX;
+    mouse.y = e.touches[0].clientY;
+    mouse.active = true;
+  });
+
+  window.addEventListener('touchend', () => { mouse.active = false; });
+
+  init();
+  loop();
+</script>
+
+</body>
+</html>
